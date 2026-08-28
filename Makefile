@@ -345,6 +345,8 @@ OPM = $(shell which opm)
 endif
 endif
 
+OPM_REGISTRY_IMAGE ?= quay.io/operator-framework/opm:v1.73.0@sha256:e5a6220603fb4504d58c6e3e488386b817e3695c906a62ee0370b5faedc3799a
+
 # A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
 # These images MUST exist in a registry and be pull-able.
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
@@ -360,7 +362,7 @@ define render-fbc-catalog
 		$(OPM) render "$$img" --output=yaml >> build/_output/catalog/configs/bundle.yaml; \
 	done
 	$(OPM) validate build/_output/catalog/configs
-	$(OPM) generate dockerfile build/_output/catalog
+	$(OPM) generate dockerfile --base-image $(OPM_REGISTRY_IMAGE) --builder-image $(OPM_REGISTRY_IMAGE) build/_output/catalog
 endef
 
 define build-fbc-catalog

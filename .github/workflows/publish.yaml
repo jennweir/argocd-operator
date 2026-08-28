@@ -18,6 +18,7 @@ jobs:
       ORG: argoprojlabs
       REPO: argocd-operator
       PLATFORMS: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+      OPM_REGISTRY_IMAGE: quay.io/operator-framework/opm:v1.73.0@sha256:e5a6220603fb4504d58c6e3e488386b817e3695c906a62ee0370b5faedc3799a
 
     steps:
 
@@ -119,7 +120,7 @@ jobs:
           cp -r deploy/registry/configs build/_output/catalog/configs
           opm render "$BUNDLE_IMG" --output=yaml >> build/_output/catalog/configs/bundle.yaml
           opm validate build/_output/catalog/configs
-          opm generate dockerfile build/_output/catalog
+          opm generate dockerfile --base-image ${{ env.OPM_REGISTRY_IMAGE }} --builder-image ${{ env.OPM_REGISTRY_IMAGE }} build/_output/catalog
 
       - name: Build and push file-based catalog registry image (multi-arch)
         uses: docker/build-push-action@v7.3.0
