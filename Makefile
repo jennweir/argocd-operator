@@ -363,6 +363,9 @@ define render-fbc-catalog
 	done
 	$(OPM) validate build/_output/catalog/configs
 	$(OPM) generate dockerfile --base-image $(OPM_REGISTRY_IMAGE) --builder-image $(OPM_REGISTRY_IMAGE) build/_output/catalog
+	# Bind opm's pprof endpoint to an ephemeral port so simultaneous multi-arch
+	# `opm serve --cache-only` runs don't collide on the default 127.0.0.1:6060.
+	sed -i.bak 's|--cache-only"\]|--cache-only", "--pprof-addr", "localhost:0"]|' build/_output/catalog.Dockerfile && rm -f build/_output/catalog.Dockerfile.bak
 endef
 
 define build-fbc-catalog
