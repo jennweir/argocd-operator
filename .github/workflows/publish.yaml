@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ~/.cache/go-build
-          key: ${{ runner.os }}-go-build-${{ github.run_id }}
+          key: ${{ runner.os }}-go-build-v1-${{ github.run_id }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4.2.0
