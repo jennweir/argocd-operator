@@ -63,6 +63,15 @@ jobs:
             type=raw,value=latest
             type=semver,pattern={{raw}}
 
+      - name: Extract metadata (tags) for bundle
+        id: meta-bundle
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{raw}}
+
       - name: Extract metadata (tags) for registry
         id: meta-registry
         uses: docker/metadata-action@v6.2.0
@@ -83,6 +92,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Build and push bundle image (multi-arch)
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          file: bundle.Dockerfile
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          tags: ${{ steps.meta-bundle.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Install opm
         run: |
           mkdir -p bin
@@ -91,12 +111,26 @@ jobs:
           chmod +x bin/opm
           echo "$PWD/bin" >> "$GITHUB_PATH"
 
+      # Resolve the exact tag the bundle step just pushed so the catalog references
+      # the identical image: a release tag push (v*) -> semver without the v prefix,
+      # any branch push -> :latest.
+      - name: Resolve bundle image reference
+        id: bundle-ref
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "ref=${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle:${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle:latest" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Render and validate the file-based catalog
+        env:
+          BUNDLE_IMG: ${{ steps.bundle-ref.outputs.ref }}
         run: |
           rm -rf build/_output
           mkdir -p build/_output/catalog
           cp -r deploy/registry/configs build/_output/catalog/configs
-          opm render bundle/ --output=yaml >> build/_output/catalog/configs/bundle.yaml
+          opm render "$BUNDLE_IMG" --output=yaml >> build/_output/catalog/configs/bundle.yaml
           opm validate build/_output/catalog/configs
           opm generate dockerfile --base-image ${{ env.OPM_REGISTRY_IMAGE }} --builder-image ${{ env.OPM_REGISTRY_IMAGE }} build/_output/catalog
 
