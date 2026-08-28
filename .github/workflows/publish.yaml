@@ -1,11 +1,15 @@
-name: Publish latest operator build 
+name: Publish latest operator build
 on:
   push:
     branches:
       - 'master'
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
 
 jobs:
-
   publish-latest-operator:
     runs-on: ubuntu-latest
 
@@ -13,36 +17,117 @@ jobs:
       REGISTRY_URL: quay.io
       ORG: argoprojlabs
       REPO: argocd-operator
+      PLATFORMS: linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
 
     steps:
 
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Go
-        uses: actions/setup-go@v7
+        uses: actions/setup-go@v7.0.0
         with:
           go-version-file: 'go.mod'
 
       - name: Restore go build cache
-        uses: actions/cache@v6
+        uses: actions/cache@v6.1.0
         with:
           path: ~/.cache/go-build
-          key: ${{ runner.os }}-go-build-v1-${{ github.run_id }}
+          key: ${{ runner.os }}-go-build-${{ github.run_id }}
 
-      - name: Build operator and Tag Latest
-        run: make docker-build
-        env:
-          IMG: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}:latest
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4.2.0
+
+      - name: Set up Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v4.3.0
 
       - name: Login to Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@v4.6.0
         with:
           registry: ${{ env.REGISTRY_URL }}
           username: ${{ secrets.REGISTRY_USERNAME }}
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Push latest operator
-        run: make docker-push
+      # Compute tags: always :latest; additionally a semver :<version> when
+      # triggered by a release tag (v*)
+      - name: Extract metadata (tags) for operator
+        id: meta-operator
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{raw}}
+
+      - name: Extract metadata (tags) for bundle
+        id: meta-bundle
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{raw}}
+
+      - name: Extract metadata (tags) for registry
+        id: meta-registry
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-registry
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{raw}}
+
+      - name: Build and push operator image (multi-arch)
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          build-args:  LD_FLAGS=-X github.com/argoproj-labs/argocd-operator/version.Version=${{ steps.meta-operator.outputs.version || 'latest' }}
+          tags: ${{ steps.meta-operator.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push bundle image (multi-arch)
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: .
+          file: bundle.Dockerfile
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          tags: ${{ steps.meta-bundle.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Install opm
+        run: |
+          mkdir -p bin
+          OS=$(go env GOOS) && ARCH=$(go env GOARCH)
+          curl -sSLfo bin/opm "https://github.com/operator-framework/operator-registry/releases/download/v1.73.0/${OS}-${ARCH}-opm"
+          chmod +x bin/opm
+          echo "$PWD/bin" >> "$GITHUB_PATH"
+
+      - name: Render and validate the file-based catalog
         env:
-          IMG: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}:latest
+          BUNDLE_IMG: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle:${{ steps.meta-bundle.outputs.version != '' && format('v{0}', steps.meta-bundle.outputs.version) || 'latest' }}
+        run: |
+          rm -rf build/_output
+          mkdir -p build/_output/catalog
+          cp -r deploy/registry/configs build/_output/catalog/configs
+          opm render "$BUNDLE_IMG" --output=yaml >> build/_output/catalog/configs/bundle.yaml
+          opm validate build/_output/catalog/configs
+          opm generate dockerfile build/_output/catalog
+
+      - name: Build and push file-based catalog registry image (multi-arch)
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: build/_output
+          file: build/_output/catalog.Dockerfile
+          push: true
+          platforms: ${{ env.PLATFORMS }}
+          tags: ${{ steps.meta-registry.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
