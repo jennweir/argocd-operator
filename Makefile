@@ -22,8 +22,6 @@ endif
 
 BUILD_PLATFORMS ?= linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
 
-comma := ,
-
 # A comma/space-separated extra args appended to buildx invocations. Set
 # BUILDX_OPTS=--push to also push the images.
 BUILDX_OPTS ?=
@@ -315,9 +313,9 @@ util-build: ## Build the util container image (for backup)
 util-push: ## Push the util container image
 	$(MAKE) docker-push IMG=$(UTIL_IMG)
 
-# REGISTRY_IMG defines the image:tag used for the File-Based Catalog (FBC) registry
+# REGISTRY_IMG defines the image:tag used for the registry
 # container image. It serves the catalog via `opm serve /configs`.
-# You can use it as an arg. (E.g make registry-build REGISTRY_IMG=<some-registry>/<project-name-bundle>:<tag>)
+# You can use it as an arg. (E.g make registry-build REGISTRY_IMG=<some-registry>/<project-name>-registry:<tag>)
 REGISTRY_IMG ?= $(IMAGE_TAG_BASE)-registry:v$(VERSION)
 
 .PHONY: registry-build
@@ -347,10 +345,6 @@ endif
 
 OPM_REGISTRY_IMAGE ?= quay.io/operator-framework/opm:v1.73.0@sha256:e5a6220603fb4504d58c6e3e488386b817e3695c906a62ee0370b5faedc3799a
 
-# A comma-separated list of bundle images (e.g. make catalog-build BUNDLE_IMGS=example.com/operator-bundle:v0.1.0,example.com/operator-bundle:v0.2.0).
-# These images MUST exist in a registry and be pull-able.
-BUNDLE_IMGS ?= $(BUNDLE_IMG)
-
 # The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
 CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
 
@@ -358,9 +352,7 @@ define render-fbc-catalog
 	rm -rf build/_output
 	mkdir -p build/_output/catalog
 	cp -r deploy/registry/configs build/_output/catalog/configs
-	@for img in $(subst $(comma), ,$(BUNDLE_IMGS)); do \
-		$(OPM) render "$$img" --output=yaml >> build/_output/catalog/configs/bundle.yaml; \
-	done
+	$(OPM) render bundle/ --output=yaml >> build/_output/catalog/configs/bundle.yaml
 	$(OPM) validate build/_output/catalog/configs
 	$(OPM) generate dockerfile --base-image $(OPM_REGISTRY_IMAGE) --builder-image $(OPM_REGISTRY_IMAGE) build/_output/catalog
 endef
@@ -371,7 +363,7 @@ define build-fbc-catalog
 endef
 
 .PHONY: catalog-build
-catalog-build: opm ## Build a Catalog image from the bundle image reference.
+catalog-build: opm ## Build a Catalog image from the bundle directory.
 	$(call build-fbc-catalog,$(CATALOG_IMG))
 
 .PHONY: catalog-validate
