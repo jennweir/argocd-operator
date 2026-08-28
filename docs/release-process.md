@@ -103,18 +103,16 @@ selector:
 * Build and push the registry image. (Below commands assume the release version as `v0.2.0`; please change the command accordingly.)
   
 ```txt
-  make bundle-push BUNDLE_IMG=quay.io/argoprojlabs/argocd-operator-bundle:v0.2.0-rc1
-  make registry-push BUNDLE_IMG=quay.io/argoprojlabs/argocd-operator-bundle:v0.2.0-rc1 REGISTRY_IMG=quay.io/argoprojlabs/argocd-operator-registry:v0.2.0-rc1
+  make registry-push REGISTRY_IMG=quay.io/argoprojlabs/argocd-operator-registry:v0.2.0-rc1
 ```
 
-  `bundle-push` builds the bundle image from `bundle.Dockerfile` and pushes it. Pass the **same** `BUNDLE_IMG` to
-  `registry-push` so `opm render` pulls the just-pushed bundle image.
-
-  The `registry-build` target renders a File-Based Catalog from the bundle *image* reference (see
-  `deploy/registry/configs/`) and builds it multi-arch with `buildx`. Because bundles are referenced by
-  image (not inlined), OLM resolves them via the bundle-unpack Job and the InstallPlan stays small instead of
-  tripping etcd's per-request size limit. If you are cutting a final release, this can also be done by the
-  release-triggered CI workflow in `.github/workflows/publish.yaml` (see below).
+  The `registry-build` target renders a File-Based Catalog directly from the local `bundle/` directory (see
+  `deploy/registry/configs/`) and builds it multi-arch with `buildx`. Bundles are referenced by image within the
+  CSV (not inlined into the catalog), so OLM resolves them via the bundle-unpack Job and the InstallPlan stays
+  small instead of tripping etcd's per-request size limit. A standalone bundle image does not need to be
+  published — the bundle is consumed from the repository's `bundle/` directory. If you are cutting a final
+  release, this can also be done by the release-triggered CI workflow in `.github/workflows/publish.yaml` (see
+  below).
 
 * Update `deploy/catalog_source.yaml` to point at the new registry image (tag or SHA of `argocd-operator-registry`).
 
