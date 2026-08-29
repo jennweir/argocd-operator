@@ -111,7 +111,9 @@ jobs:
           chmod +x bin/opm
           echo "$PWD/bin" >> "$GITHUB_PATH"
 
-      # Resolve the exact tag the bundle step just pushed so the catalog references the correct image
+      # Resolve the exact tag the bundle step just pushed so the catalog references
+      # the identical image: a release tag push (v*) -> the same v-prefixed semver tag
+      # that meta-bundle produced via pattern={{raw}}, any branch push -> :latest.
       - name: Resolve bundle image reference
         id: bundle-ref
         run: |
