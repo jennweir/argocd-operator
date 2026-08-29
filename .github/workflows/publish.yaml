@@ -111,14 +111,12 @@ jobs:
           chmod +x bin/opm
           echo "$PWD/bin" >> "$GITHUB_PATH"
 
-      # Resolve the exact tag the bundle step just pushed so the catalog references
-      # the identical image: a release tag push (v*) -> semver without the v prefix,
-      # any branch push -> :latest.
+      # Resolve the exact tag the bundle step just pushed so the catalog references the correct image
       - name: Resolve bundle image reference
         id: bundle-ref
         run: |
           if [ "${{ github.ref_type }}" = "tag" ]; then
-            echo "ref=${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle:${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+            echo "ref=${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle:${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
           else
             echo "ref=${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-bundle:latest" >> "$GITHUB_OUTPUT"
           fi
