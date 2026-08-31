@@ -107,6 +107,7 @@ jobs:
           push: true
           # Bundle images are arch-independent (plaintext manifests/metadata), so a
           # single platform suffices; the catalog index remains multi-arch.
+          # https://sdk.operatorframework.io/docs/advanced-topics/multi-arch/#operator-lifecycle-manager
           platforms: linux/amd64
           tags: ${{ steps.meta-bundle.outputs.tags }}
           cache-from: type=gha
@@ -140,14 +141,12 @@ jobs:
           rm -rf build/_output
           mkdir -p build/_output/catalog
           # Lay the FBC root (catalog.yaml + rendered bundle.yaml) directly under
-          # build/_output/catalog so `opm generate dockerfile`/`ADD catalog /configs`
-          # produce a single /configs/ tree; a ./configs/ wrapper would nest twice.
+          # build/_output/catalog.
           cp config/fbc-registry/catalog.yaml build/_output/catalog/
           opm render "$BUNDLE_IMG" --output=yaml >> build/_output/catalog/bundle.yaml
           # Fill the channel entry's copy version from the rendered bundle's own
           # name (argocd-operator.v<X> -> <X>) so it always matches what gets
-          # installed; works for both tag and branch pushes, no version to keep
-          # in sync.
+          # installed; works for both tag and branch pushes.
           BUNDLE_VERSION="$(grep -m1 'name: argocd-operator\.v' build/_output/catalog/bundle.yaml \
             | sed -n 's/.*argocd-operator\.v\([0-9][^ ]*\).*/\1/p')"
           # Substitute the derived version in place of the ${BUNDLE_VERSION} template

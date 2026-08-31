@@ -359,7 +359,7 @@ define render-fbc-catalog
 	mkdir -p build/_output/catalog
 	# Lay the FBC root (catalog.yaml + rendered bundle.yaml) directly under
 	# build/_output/catalog so `opm generate dockerfile`/`ADD catalog /configs`
-	# produce a single /configs/ tree; a ./configs/ wrapper would nest twice.
+	# produce a single /configs/ directory.
 	cp config/fbc-registry/catalog.yaml build/_output/catalog/
 	@for img in $(subst $(comma), ,$(BUNDLE_IMGS)); do \
 		$(OPM) render "$$img" --output=yaml >> build/_output/catalog/bundle.yaml; \
