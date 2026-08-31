@@ -364,7 +364,7 @@ define render-fbc-catalog
 	@for img in $(subst $(comma), ,$(BUNDLE_IMGS)); do \
 		$(OPM) render "$$img" --output=yaml >> build/_output/catalog/bundle.yaml; \
 	done
-	$(OPM) validate build/_output/catalog/configs
+	$(OPM) validate build/_output/catalog
 	$(OPM) generate dockerfile --base-image $(OPM_REGISTRY_IMAGE) --builder-image $(OPM_REGISTRY_IMAGE) build/_output/catalog
 	# Bind opm's pprof endpoint to an ephemeral port so simultaneous multi-arch
 	# `opm serve --cache-only` runs don't collide on the default 127.0.0.1:6060.
