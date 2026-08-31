@@ -17,7 +17,7 @@ RUN groupadd -g $ARGOCD_USER_ID argocd && \
     apt-get update && \
     apt-get dist-upgrade -y && \
     apt-get install -y \
-    git git-lfs tini curl python3-pip gpg tzdata unzip && \
+    git git-lfs tini curl python3-pip pipx gpg tzdata unzip && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -33,16 +33,24 @@ RUN AWS_ARCH=$( [ "$TARGETARCH" = "arm64" ] && echo aarch64 || echo x86_64 ); \
     ./aws/install && \
     rm -rf awscliv2.zip aws
 
-# Install the Microsoft Azure CLI
-RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install the Microsoft Azure CLI globally with pipx (Microsoft's documented
+# fallback). pipx --global installs the venv under /opt/pipx and symlinks the
+# `az` launcher into /usr/local/bin so all users (incl. the non-root `argocd`
+# user) can run it, without touching the system Python's own packages.
+RUN pipx install --global azure-cli
 
-# Install the Google Cloud SDK (CLI)
-RUN curl -sL https://sdk.cloud.google.com > /tmp/install.sh && \
-    bash /tmp/install.sh --disable-prompts --install-dir=/home/argocd && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install the Google Cloud SDK (arch-aware). gcloud publishes separate
+# x86_64 and Arm (aarch64) archives; arm64 relies on the system Python
+# (3.10-3.14), which the base image provides.
+ARG TARGETARCH
+ARG GCLOUD_VERSION=582.0.0
+RUN GCLOUD_ARCH=$( [ "$TARGETARCH" = "amd64" ] && echo x86_64 || echo arm ); \
+    curl -sL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-${GCLOUD_ARCH}.tar.gz" -o /tmp/gcloud.tar.gz && \
+    tar xzf /tmp/gcloud.tar.gz -C /home/argocd && \
+    CLOUDSDK_SKIP_PY_COMPILATION=1 /home/argocd/google-cloud-sdk/install.sh --quiet --disable-prompts --install-dir=/home/argocd/google-cloud-sdk && \
+    rm -f /tmp/gcloud.tar.gz
 
-ENV PATH="/usr/local/google-cloud-sdk/bin:${PATH}"
+ENV PATH="/home/argocd/google-cloud-sdk/bin:${PATH}"
 
 COPY entrypoint.sh /usr/local/bin/uid_entrypoint.sh
 RUN chmod +x /usr/local/bin/uid_entrypoint.sh
