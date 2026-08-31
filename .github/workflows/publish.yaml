@@ -99,13 +99,16 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Build and push bundle image (multi-arch)
+      - name: Build and push bundle image
         uses: docker/build-push-action@v7.3.0
         with:
           context: .
           file: bundle.Dockerfile
           push: true
-          platforms: ${{ env.PLATFORMS }}
+          # Bundle images are arch-independent (plaintext manifests/metadata), so a
+          # single platform suffices; the catalog index remains multi-arch.
+          # https://sdk.operatorframework.io/docs/advanced-topics/multi-arch/#operator-lifecycle-manager
+          platforms: linux/amd64
           tags: ${{ steps.meta-bundle.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -134,11 +137,24 @@ jobs:
         env:
           BUNDLE_IMG: ${{ steps.bundle-ref.outputs.ref }}
         run: |
+          set -euo pipefail
           rm -rf build/_output
           mkdir -p build/_output/catalog
-          cp -r deploy/registry/configs build/_output/catalog/configs
-          opm render "$BUNDLE_IMG" --output=yaml >> build/_output/catalog/configs/bundle.yaml
-          opm validate build/_output/catalog/configs
+          # Lay the FBC root (catalog.yaml + rendered bundle.yaml) directly under
+          # build/_output/catalog.
+          cp config/fbc-registry/catalog.yaml build/_output/catalog/
+          opm render "$BUNDLE_IMG" --output=yaml >> build/_output/catalog/bundle.yaml
+          # Fill the channel entry's copy version from the rendered bundle's own
+          # name (argocd-operator.v<X> -> <X>) so it always matches what gets
+          # installed; works for both tag and branch pushes.
+          BUNDLE_VERSION="$(grep -m1 'name: argocd-operator\.v' build/_output/catalog/bundle.yaml \
+            | sed -n 's/.*argocd-operator\.v\([0-9][^ ]*\).*/\1/p')"
+          # Substitute the derived version in place of the ${BUNDLE_VERSION} template
+          # token using plain sed (no extra tooling required on the runner).
+          sed "s|argocd-operator\.v\${BUNDLE_VERSION}|argocd-operator.v${BUNDLE_VERSION}|" \
+            build/_output/catalog/catalog.yaml > build/_output/catalog/catalog.yaml.tmp \
+            && mv build/_output/catalog/catalog.yaml.tmp build/_output/catalog/catalog.yaml
+          opm validate build/_output/catalog
           opm generate dockerfile --base-image ${{ env.OPM_REGISTRY_IMAGE }} --builder-image ${{ env.OPM_REGISTRY_IMAGE }} build/_output/catalog
 
       - name: Build and push file-based catalog registry image (multi-arch)

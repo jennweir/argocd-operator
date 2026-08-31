@@ -10,7 +10,11 @@ Before beginning, make sure you have push access to the following repositories i
 
   * [https://quay.io/argoprojlabs/argocd-operator-util](https://quay.io/argoprojlabs/argocd-operator-util)
   * [http://quay.io/argoprojlabs/argocd-operator](http://quay.io/argoprojlabs/argocd-operator)
+<<<<<<< HEAD
   * [http://quay.io/argoprojlabs/argocd-operator-registry](http://quay.io/argoprojlabs/argocd-operator-registry) 
+=======
+  * [http://quay.io/argoprojlabs/argocd-operator-registry](http://quay.io/argoprojlabs/argocd-operator-registry)
+>>>>>>> fd7b055d (fix(deploy): migrate olm catalog to FBC and build multi-arch images)
   * [http://quay.io/argoprojlabs/argocd-operator-bundle](http://quay.io/argoprojlabs/argocd-operator-bundle)
 
 Lastly, make sure you are listed as a maintainer for argocd-operator in order to tag and publish releases. 
@@ -111,7 +115,7 @@ selector:
   `bundle-push` builds the bundle image from `bundle.Dockerfile` and pushes it. Pass the **same** `BUNDLE_IMG` to `registry-push` so `opm render` pulls the just-pushed bundle image.
 
   The `registry-build` target renders a File-Based Catalog from the bundle *image* reference (see
-  `deploy/registry/configs/`) and builds it multi-arch with `buildx`. Because bundles are referenced by
+  `config/fbc-registry/catalog.yaml`) and builds it multi-arch with `buildx`. Because bundles are referenced by
   image (not inlined), OLM resolves them via the bundle-unpack Job and the InstallPlan stays small instead of
   tripping etcd's per-request size limit. If you are cutting a final release, this can also be done by the
   release-triggered CI workflow in `.github/workflows/publish.yaml` (see below).
