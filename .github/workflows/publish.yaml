@@ -88,6 +88,15 @@ jobs:
             type=raw,value=latest
             type=semver,pattern={{raw}}
 
+      - name: Extract metadata (tags) for util
+        id: meta-util
+        uses: docker/metadata-action@v6.2.0
+        with:
+          images: ${{ env.REGISTRY_URL }}/${{ env.ORG }}/${{ env.REPO }}-util
+          tags: |
+            type=raw,value=latest
+            type=semver,pattern={{raw}}
+
       - name: Build and push operator image (multi-arch)
         uses: docker/build-push-action@v7.3.0
         with:
@@ -110,6 +119,18 @@ jobs:
           # https://sdk.operatorframework.io/docs/advanced-topics/multi-arch/#operator-lifecycle-manager
           platforms: linux/amd64
           tags: ${{ steps.meta-bundle.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push util image (multi-arch)
+        uses: docker/build-push-action@v7.3.0
+        with:
+          context: build/util
+          push: true
+          # AWS CLI v2 only publishes x86_64 and aarch64 binaries, so the util
+          # image targets linux/amd64 and linux/arm64.
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta-util.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

@@ -24,8 +24,11 @@ RUN groupadd -g $ARGOCD_USER_ID argocd && \
 # Create a symlink for python to point to python3
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Install AWS CLI v2
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+# Install AWS CLI v2 (arch-aware). AWS CLI v2 only publishes x86_64 and aarch64
+# binaries, so the util image targets linux/amd64 and linux/arm64.
+ARG TARGETARCH
+RUN AWS_ARCH=$( [ "$TARGETARCH" = "arm64" ] && echo aarch64 || echo x86_64 ); \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install && \
     rm -rf awscliv2.zip aws

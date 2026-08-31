@@ -307,9 +307,13 @@ bundle-push: ## Push the bundle image.
 # You can use it as an arg. (E.g make util-build UTIL_IMG=<some-registry>/<project-name-bundle>:<tag>)
 UTIL_IMG ?= $(IMAGE_TAG_BASE)-util:v$(VERSION)
 
+# The util image is limited to amd64/arm64 because AWS CLI v2 only publishes
+# x86_64 and aarch64 binaries (no ppc64le/s390x builds).
+UTIL_PLATFORMS ?= linux/amd64,linux/arm64
+
 .PHONY: util-build
 util-build: ## Build the util container image (for backup)
-	$(CONTAINER_RUNTIME) buildx build --platform $(BUILD_PLATFORMS) --no-cache -t $(UTIL_IMG) $(BUILDX_OPTS) build/util
+	$(CONTAINER_RUNTIME) buildx build --platform $(UTIL_PLATFORMS) --no-cache -t $(UTIL_IMG) $(BUILDX_OPTS) build/util
 
 .PHONY: util-push
 util-push: ## Push the util container image
