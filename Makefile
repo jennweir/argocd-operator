@@ -296,8 +296,8 @@ bundle: operator-sdk manifests kustomize ## Generate bundle manifests and metada
 	mv deploy/olm-catalog/argocd-operator/$(VERSION)/argocd-operator.clusterserviceversion.yaml deploy/olm-catalog/argocd-operator/$(VERSION)/argocd-operator.v$(VERSION).clusterserviceversion.yaml
 
 .PHONY: bundle-build
-bundle-build: ## Build the bundle image.
-	$(CONTAINER_RUNTIME) buildx build --platform $(BUILD_PLATFORMS) -f bundle.Dockerfile -t $(BUNDLE_IMG) $(BUILDX_OPTS) .
+bundle-build: ## Build the bundle image (arch-independent plaintext manifests).
+	$(CONTAINER_RUNTIME) buildx build --platform linux/amd64 -f bundle.Dockerfile -t $(BUNDLE_IMG) $(BUILDX_OPTS) .
 
 .PHONY: bundle-push
 bundle-push: ## Push the bundle image.
@@ -313,7 +313,7 @@ util-build: ## Build the util container image (for backup)
 
 .PHONY: util-push
 util-push: ## Push the util container image
-	$(MAKE) docker-push IMG=$(UTIL_IMG)
+	$(MAKE) util-build BUILDX_OPTS=--push
 
 # REGISTRY_IMG defines the image:tag used for the File-Based Catalog (FBC) registry
 # container image. It serves the catalog via `opm serve /configs`.
@@ -357,9 +357,12 @@ CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(VERSION)
 define render-fbc-catalog
 	rm -rf build/_output
 	mkdir -p build/_output/catalog
-	cp -r deploy/registry/configs build/_output/catalog/configs
+	# Lay the FBC root (catalog.yaml + rendered bundle.yaml) directly under
+	# build/_output/catalog so `opm generate dockerfile`/`ADD catalog /configs`
+	# produce a single /configs/ tree; a ./configs/ wrapper would nest twice.
+	cp config/fbc-registry/catalog.yaml build/_output/catalog/
 	@for img in $(subst $(comma), ,$(BUNDLE_IMGS)); do \
-		$(OPM) render "$$img" --output=yaml >> build/_output/catalog/configs/bundle.yaml; \
+		$(OPM) render "$$img" --output=yaml >> build/_output/catalog/bundle.yaml; \
 	done
 	$(OPM) validate build/_output/catalog/configs
 	$(OPM) generate dockerfile --base-image $(OPM_REGISTRY_IMAGE) --builder-image $(OPM_REGISTRY_IMAGE) build/_output/catalog
