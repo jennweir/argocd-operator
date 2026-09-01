@@ -47,7 +47,7 @@ ARG GCLOUD_VERSION=582.0.0
 RUN GCLOUD_ARCH=$( [ "$TARGETARCH" = "amd64" ] && echo x86_64 || echo arm ); \
     curl -sL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-${GCLOUD_ARCH}.tar.gz" -o /tmp/gcloud.tar.gz && \
     tar xzf /tmp/gcloud.tar.gz -C /home/argocd && \
-    CLOUDSDK_SKIP_PY_COMPILATION=1 /home/argocd/google-cloud-sdk/install.sh --quiet --disable-prompts --install-dir=/home/argocd/google-cloud-sdk && \
+    /home/argocd/google-cloud-sdk/install.sh --quiet --disable-installation-options --no-compile-python && \
     rm -f /tmp/gcloud.tar.gz
 
 ENV PATH="/home/argocd/google-cloud-sdk/bin:${PATH}"
