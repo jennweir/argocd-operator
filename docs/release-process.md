@@ -54,7 +54,7 @@ Lastly, make sure you are listed as a maintainer for argocd-operator in order to
   make docker-push IMG=quay.io/argoprojlabs/argocd-operator:v0.2.0-rc1
 ```
 
-  The operator, bundle, and catalog images are built multi-arch (linux/amd64, linux/arm64, linux/ppc64le, linux/s390x) with `buildx`. For final releases, these are built and pushed by CI via `.github/workflows/publish.yaml`, triggered on release tags.
+  The operator, bundle, and catalog images are built multi-arch (linux/amd64, linux/arm64) with `buildx`. For final releases, these are built and pushed by CI via `.github/workflows/publish.yaml`, triggered on release tags.
 
 * Create the bundle artifacts using the SHA of the operator container image.
   
