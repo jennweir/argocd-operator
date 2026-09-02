@@ -33,11 +33,9 @@ RUN AWS_ARCH=$( [ "$TARGETARCH" = "arm64" ] && echo aarch64 || echo x86_64 ); \
     ./aws/install && \
     rm -rf awscliv2.zip aws
 
-# Install the Microsoft Azure CLI globally with pipx (Microsoft's documented
-# fallback). pipx --global installs the venv under /opt/pipx and symlinks the
-# `az` launcher into /usr/local/bin so all users (incl. the non-root `argocd`
-# user) can run it, without touching the system Python's own packages.
-RUN pipx install --global azure-cli
+# Install the Microsoft Azure CLI
+RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Install the Google Cloud SDK (CLI)
 RUN curl -sL https://sdk.cloud.google.com > /tmp/install.sh && \
