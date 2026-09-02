@@ -119,7 +119,7 @@ make bundle-push BUNDLE_IMG=quay.io/my-org/argocd-operator-bundle:latest
 
 Build and push the development catalog image.
 Override the name of the catalog image by specifying the `CATALOG_IMG` variable.
-Specify the bundle image to include using the `BUNDLE_IMG` variable
+Specify the bundle image to include using the `BUNDLE_IMG` variable.
 
 ``` bash
 make catalog-build BUNDLE_IMG=quay.io/my-org/argocd-operator-bundle:latest CATALOG_IMG=quay.io/my-org/argocd-operator-index:latest

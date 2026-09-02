@@ -11,6 +11,7 @@ Before beginning, make sure you have push access to the following repositories i
   * [https://quay.io/argoprojlabs/argocd-operator-util](https://quay.io/argoprojlabs/argocd-operator-util)
   * [http://quay.io/argoprojlabs/argocd-operator](http://quay.io/argoprojlabs/argocd-operator)
   * [http://quay.io/argoprojlabs/argocd-operator-registry](http://quay.io/argoprojlabs/argocd-operator-registry)
+  * [http://quay.io/argoprojlabs/argocd-operator-registry](http://quay.io/argoprojlabs/argocd-operator-registry) 
   * [http://quay.io/argoprojlabs/argocd-operator-bundle](http://quay.io/argoprojlabs/argocd-operator-bundle)
 
 Lastly, make sure you are listed as a maintainer for argocd-operator in order to tag and publish releases. 
