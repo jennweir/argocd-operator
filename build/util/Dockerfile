@@ -7,6 +7,7 @@ FROM docker.io/library/ubuntu:26.04
 USER root
 
 ENV ARGOCD_USER_ID=999
+ARG DEBIAN_FRONTEND=noninteractive
 
 RUN groupadd -g $ARGOCD_USER_ID argocd && \
     useradd -r -u $ARGOCD_USER_ID -g argocd argocd && \
@@ -32,17 +33,14 @@ RUN AWS_ARCH=$( [ "$TARGETARCH" = "arm64" ] && echo aarch64 || echo x86_64 ); \
     ./aws/install && \
     rm -rf awscliv2.zip aws
 
-# Install Azure CLI (arch-aware)
+# Install the Microsoft Azure CLI
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install Google Cloud CLI (arch-aware)
-ARG GCLOUD_VERSION=583.0.0
-RUN GCLOUD_ARCH=$( [ "$TARGETARCH" = "amd64" ] && echo x86_64 || echo arm ) && \
-    curl -sL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-${GCLOUD_ARCH}.tar.gz" -o /tmp/gcloud.tar.gz && \
-    tar xzf /tmp/gcloud.tar.gz -C /home/argocd && \
-    /home/argocd/google-cloud-sdk/install.sh --quiet --disable-installation-options --no-compile-python --bash-completion=false --path-update=false && \
-    rm -f /tmp/gcloud.tar.gz && \
+# Install the Google Cloud SDK (CLI)
+RUN curl -sL https://sdk.cloud.google.com > /tmp/install.sh && \
+    bash /tmp/install.sh --disable-prompts --install-dir=/home/argocd && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* && \
     chown -R argocd:0 /home/argocd/google-cloud-sdk
 
 ENV PATH="/home/argocd/google-cloud-sdk/bin:${PATH}"
