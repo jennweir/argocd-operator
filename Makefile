@@ -20,7 +20,7 @@ ifeq ($(CONTAINER_RUNTIME),)
 $(warning "No container runtime (Docker or Podman) found in PATH. Please install one of them.")
 endif
 
-BUILD_PLATFORMS ?= linux/amd64,linux/arm64,linux/ppc64le,linux/s390x
+BUILD_PLATFORMS ?= linux/amd64,linux/arm64
 
 comma := ,
 
