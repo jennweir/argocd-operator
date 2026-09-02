@@ -7,7 +7,6 @@ FROM docker.io/library/ubuntu:26.04
 USER root
 
 ENV ARGOCD_USER_ID=999
-ENV DEBIAN_FRONTEND=noninteractive
 
 RUN groupadd -g $ARGOCD_USER_ID argocd && \
     useradd -r -u $ARGOCD_USER_ID -g argocd argocd && \
@@ -17,29 +16,36 @@ RUN groupadd -g $ARGOCD_USER_ID argocd && \
     apt-get update && \
     apt-get dist-upgrade -y && \
     apt-get install -y \
-    git git-lfs tini curl python3-pip gpg tzdata unzip && \
+    git git-lfs tini curl python3-pip gpg tzdata unzip ca-certificates lsb-release && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Create a symlink for python to point to python3
 RUN ln -s /usr/bin/python3 /usr/bin/python
 
-# Install AWS CLI v2
-RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+# Install AWS CLI (arch-aware). AWS CLI v2 only publishes x86_64 and aarch64
+# binaries, so the util image targets linux/amd64 and linux/arm64.
+ARG TARGETARCH
+RUN AWS_ARCH=$( [ "$TARGETARCH" = "arm64" ] && echo aarch64 || echo x86_64 ); \
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}.zip" -o "awscliv2.zip" && \
     unzip awscliv2.zip && \
     ./aws/install && \
     rm -rf awscliv2.zip aws
 
-# Install the Microsoft Azure CLI
+# Install Azure CLI (arch-aware)
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install the Google Cloud SDK (CLI)
-RUN curl -sL https://sdk.cloud.google.com > /tmp/install.sh && \
-    bash /tmp/install.sh --disable-prompts --install-dir=/home/argocd && \
-    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+# Install Google Cloud CLI (arch-aware)
+ARG GCLOUD_VERSION=583.0.0
+RUN GCLOUD_ARCH=$( [ "$TARGETARCH" = "amd64" ] && echo x86_64 || echo arm ) && \
+    curl -sL "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${GCLOUD_VERSION}-linux-${GCLOUD_ARCH}.tar.gz" -o /tmp/gcloud.tar.gz && \
+    tar xzf /tmp/gcloud.tar.gz -C /home/argocd && \
+    /home/argocd/google-cloud-sdk/install.sh --quiet --disable-installation-options --no-compile-python --bash-completion=false --path-update=false && \
+    rm -f /tmp/gcloud.tar.gz && \
+    chown -R argocd:0 /home/argocd/google-cloud-sdk
 
-ENV PATH="/usr/local/google-cloud-sdk/bin:${PATH}"
+ENV PATH="/home/argocd/google-cloud-sdk/bin:${PATH}"
 
 COPY entrypoint.sh /usr/local/bin/uid_entrypoint.sh
 RUN chmod +x /usr/local/bin/uid_entrypoint.sh
