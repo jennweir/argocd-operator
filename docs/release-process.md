@@ -10,11 +10,8 @@ Before beginning, make sure you have push access to the following repositories i
 
   * [https://quay.io/argoprojlabs/argocd-operator-util](https://quay.io/argoprojlabs/argocd-operator-util)
   * [http://quay.io/argoprojlabs/argocd-operator](http://quay.io/argoprojlabs/argocd-operator)
-<<<<<<< HEAD
-  * [http://quay.io/argoprojlabs/argocd-operator-registry](http://quay.io/argoprojlabs/argocd-operator-registry) 
-=======
   * [http://quay.io/argoprojlabs/argocd-operator-registry](http://quay.io/argoprojlabs/argocd-operator-registry)
->>>>>>> fd7b055d (fix(deploy): migrate olm catalog to FBC and build multi-arch images)
+  * [http://quay.io/argoprojlabs/argocd-operator-registry](http://quay.io/argoprojlabs/argocd-operator-registry) 
   * [http://quay.io/argoprojlabs/argocd-operator-bundle](http://quay.io/argoprojlabs/argocd-operator-bundle)
 
 Lastly, make sure you are listed as a maintainer for argocd-operator in order to tag and publish releases. 
@@ -112,7 +109,8 @@ selector:
   make registry-push BUNDLE_IMG=quay.io/argoprojlabs/argocd-operator-bundle:v0.2.0-rc1 REGISTRY_IMG=quay.io/argoprojlabs/argocd-operator-registry:v0.2.0-rc1
 ```
 
-  `bundle-push` builds the bundle image from `bundle.Dockerfile` and pushes it. Pass the **same** `BUNDLE_IMG` to `registry-push` so `opm render` pulls the just-pushed bundle image.
+  `bundle-push` builds the bundle image from `bundle.Dockerfile` and pushes it. Pass the **same** `BUNDLE_IMG` to
+  `registry-push` so `opm render` pulls the just-pushed bundle image.
 
   The `registry-build` target renders a File-Based Catalog from the bundle *image* reference (see
   `config/fbc-registry/catalog.yaml`) and builds it multi-arch with `buildx`. Because bundles are referenced by

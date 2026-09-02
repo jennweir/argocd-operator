@@ -1,4 +1,3 @@
----
 # `olm.bundle` entries are rendered at build time from the bundle image
 # reference (see `make catalog-build`). Thus, bundles resolve via OLM's
 # bundle-unpack Job rather than being inlined into the InstallPlan.
