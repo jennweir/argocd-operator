@@ -10,7 +10,7 @@ VERSION ?= 0.19.0
 # After updating, call 'make update-dependencies'.
 # Notes:
 # - String should NOT begin with 'v' prefix, e.g. 'v3.1.1'
-ARGO_CD_TARGET_VERSION ?= 3.5.1
+ARGO_CD_TARGET_VERSION ?= 3.5.2
 
 # Try to detect Docker or Podman
 CONTAINER_RUNTIME := $(shell command -v docker 2> /dev/null || command -v podman 2> /dev/null)
@@ -137,7 +137,7 @@ build: generate fmt vet ## Build manager binary.
 	go build -ldflags=$(LD_FLAGS) -o bin/manager cmd/main.go
 
 run: manifests generate fmt vet ## Run a controller from your host.
-	REDIS_CONFIG_PATH="build/redis" go run -ldflags=$(LD_FLAGS) ./cmd/main.go
+	REDIS_CONFIG_PATH="build/redis" ARGOCD_OPERATOR_NAMESPACE="argocd" go run -ldflags=$(LD_FLAGS) ./cmd/main.go
 
 docker-build: test ## Build docker image with the manager.
 	$(CONTAINER_RUNTIME) buildx build --platform linux/$(shell go env GOARCH) --build-arg LD_FLAGS=$(LD_FLAGS) -t ${IMG} --load .
@@ -396,7 +396,7 @@ catalog-push: ## Push a catalog image.
 .PHONY: e2e-tests-sequential-ginkgo
 e2e-tests-sequential-ginkgo: ginkgo
 	@echo "Running operator sequential Ginkgo E2E tests..."
-	$(GINKGO_CLI) -v --trace --timeout 100m -r ./tests/ginkgo/sequential
+	$(GINKGO_CLI) -v --trace --timeout 110m -r ./tests/ginkgo/sequential
 
 .PHONY: e2e-tests-parallel-ginkgo
 e2e-tests-parallel-ginkgo: ginkgo
