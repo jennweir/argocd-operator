@@ -139,27 +139,26 @@ var _ = Describe("GitOps Operator Parallel E2E Tests", func() {
 				ac.Spec.SSO = nil
 			})
 
-			By("verifying ArgoCD status goes back to Unknown SSO status, but Argo CD is still available")
+			By("waiting for the Dex teardown to complete so subsequent status checks are stable")
+			Eventually(depl).ShouldNot(k8sFixture.ExistByName())
+			Eventually(sa).ShouldNot(k8sFixture.ExistByName())
+			Eventually(rb).ShouldNot(k8sFixture.ExistByName())
+			Eventually(r).ShouldNot(k8sFixture.ExistByName())
+			Eventually(service).ShouldNot(k8sFixture.ExistByName())
+
+			By("verifying ArgoCD status has settled back to Unknown SSO status and is Available")
 			Eventually(argoCD, "5m", "5s").Should(argocdFixture.BeAvailable())
 			Eventually(argoCD, "5m", "5s").Should(argocdFixture.HaveSSOStatus("Unknown"))
 
-			Consistently(argoCD).Should(argocdFixture.HaveSSOStatus("Unknown"))
-			Consistently(argoCD).Should(argocdFixture.BeAvailable())
+			By("verifying ArgoCD remains Available with Unknown SSO status")
+			Consistently(argoCD, "30s", "5s").Should(argocdFixture.HaveSSOStatus("Unknown"))
+			Consistently(argoCD, "30s", "5s").Should(argocdFixture.BeAvailableWithCustomSleepTime(0))
 
-			By("verifying the various dex resources have been deleted")
-			Eventually(depl).ShouldNot(k8sFixture.ExistByName())
+			By("verifying the various dex resources remain deleted")
 			Consistently(depl).ShouldNot(k8sFixture.ExistByName())
-
-			Eventually(sa).ShouldNot(k8sFixture.ExistByName())
 			Consistently(sa).ShouldNot(k8sFixture.ExistByName())
-
-			Eventually(rb).ShouldNot(k8sFixture.ExistByName())
 			Consistently(rb).ShouldNot(k8sFixture.ExistByName())
-
-			Eventually(r).ShouldNot(k8sFixture.ExistByName())
 			Consistently(r).ShouldNot(k8sFixture.ExistByName())
-
-			Eventually(service).ShouldNot(k8sFixture.ExistByName())
 			Consistently(service).ShouldNot(k8sFixture.ExistByName())
 
 			By("enabling keycloak provider, but setting dex config configuration")
