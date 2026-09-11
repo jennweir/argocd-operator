@@ -368,6 +368,10 @@ define render-fbc-catalog
 	@for img in $(subst $(comma), ,$(BUNDLE_IMGS)); do \
 		$(OPM) render "$$img" --output=yaml >> build/_output/catalog/bundle.yaml; \
 	done
+	# Substitute $(VERSION) in place of ${BUNDLE_VERSION} so entry is a valid version reference
+	sed "s/argocd-operator\.v\$${BUNDLE_VERSION}/argocd-operator.v$(VERSION)/" \
+		build/_output/catalog/catalog.yaml > build/_output/catalog/catalog.yaml.tmp && \
+	mv build/_output/catalog/catalog.yaml.tmp build/_output/catalog/catalog.yaml
     $(OPM) validate build/_output/catalog
     $(OPM) generate dockerfile --base-image $(OPM_REGISTRY_IMAGE) --builder-image $(OPM_REGISTRY_IMAGE) build/_output/catalog
     # Bind opm's pprof endpoint to an ephemeral port so simultaneous multi-arch
